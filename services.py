@@ -1,7 +1,8 @@
 #!/usr/bin/env
 
-import sys, ServicesKeys
+import sys, requests, ServicesKeys
 from flask import Flask
+from flask import request
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -27,12 +28,24 @@ def index():
     return "Hello, %s!" % auth.username()
 
 @app.route('/Canvas', methods=['GET'])
+@auth.login_required
 def get_canvas():
-	return "Canvas Request"
+	if 'file' in request.args:
+		url = "https://vt.instructure.com/api/v1/courses/%s/files/?search_term=%s&access_token=%s" % (104692, request.args['file'], ServicesKeys.c_token)
+		file = requests.get(url)
+		with open(request.args['file'], 'wb') as f:
+			f.write(file.content)
+		return "File Downloaded \n"
+	else:
+		return "Error: File Not Found \n"
 
 @app.route('/Marvel', methods=['GET'])
+@auth.login_required
 def get_marvel():
-	return "Marvel Request"
+	if 'story' in request.args:
+		return "Marvel Request for " + request.args['story'] + "\n"
+	else:
+		return "Blank Marvel Request \n"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=sys.argv[2], debug=True)
