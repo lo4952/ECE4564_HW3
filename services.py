@@ -1,6 +1,6 @@
 #!/usr/bin/env
 
-import sys, requests, ServicesKeys
+import sys, time, hashlib, requests, ServicesKeys
 from flask import Flask
 from flask import request
 from flask_httpauth import HTTPBasicAuth
@@ -43,9 +43,17 @@ def get_canvas():
 @auth.login_required
 def get_marvel():
 	if 'story' in request.args:
-		return "Marvel Request for " + request.args['story'] + "\n"
+		t = time.strftime("%Y%d%m%H%M%S")
+		m = hashlib.md5()
+		m.update("{}{}{}".format(t, ServicesKeys.m_pri, ServicesKeys.m_pub).encode("utf-8"))
+		hash = m.hexdigest()
+		file = requests.get('https://gateway.marvel.com/v1/public/stories/{}?apikey={}&hash={}&ts={}'.format(request.args['story'], ServicesKeys.m_pub, hash, t))
+		print(file.text)
+		with open(request.args['story'], 'wb') as f:
+			f.write(file.content)
+		return "File Downloaded \n"
 	else:
-		return "Blank Marvel Request \n"
+		return "Error: File Not Found \n"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=sys.argv[2], debug=True)
